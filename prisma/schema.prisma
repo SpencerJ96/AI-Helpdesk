@@ -1,0 +1,87 @@
+
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+	id String @id @default(cuid())
+	email String @unique
+	passwordHash String
+	name String?
+	role String @default("USER")
+	createdAt DateTime @default(now())
+
+	tickets Ticket[]
+	messages Message[]
+}
+
+model Ticket {
+	id String @id @default(cuid())
+	subject String
+
+	ownerId String
+	owner User @relation(fields: [ownerId], references: [id], onDelete:Cascade)
+
+	status String @default("OPEN")
+
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+
+	category String?
+	priority String?
+	sentiment String?
+
+	categoryOverridden Boolean @default(false)
+	priorityOverridden Boolean @default(false)
+
+	aiAnalyzedAt DateTime?
+	aiAnalysisError String?
+
+	messages Message[]
+}
+
+model Message {
+	id String @id @default(cuid())
+	content String
+	type String // "USER" | "ADMIN" | "AI_DRAFT"
+
+
+	//Lets us pull out TICKET as an object for all TICKET fields, making querying easier
+
+	ticketId String //Set later in code
+	ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade) //Match ticketID here to ID in TICKET model
+
+	//Lets us pull out USER as an object for all USER Fields ,  making querying easier
+
+	authorId String? 
+	author User? @relation(fields: [authorId], references: [id], onDelete: SetNull) //Look at authour ID here match to Id in USER Model
+
+	createdAt DateTime @default(now())
+
+	draftStatus String? // "PENDING" | "SENT_AS_IS" | "SENT_EDITED" | "DISCARDED"
+
+	//Set later in code when a sent reply is created
+	sourceDraftId String? 
+
+	//Look for the sourceDraftId that matches the ID field in MESSAGES Table
+
+	//Message table:
+//	| id      | ticketId | type      | content               | authorId | draftStatus  | sourceDraftId |
+//	|---------|----------|-----------|------------------------|----------|--------------|---------------|
+//	| msg1    | abc123   | USER      | "VPN isn't working"    | user1    | (null)       | (null)        |
+//	| draft1  | abc123   | AI_DRAFT  | "Please try..."        | (null)   | SENT_EDITED  | (null)        |
+//	| sent1   | abc123   | ADMIN     | "Please try this..."   | admin1   | (null)       | draft1        |
+
+
+	sourceDraft Message? @relation("DraftLineage", fields:[sourceDraftId], references: [id]) 
+	//DraftLineage - relational marker. sentFrom follow the same rules as the other marker. 
+
+	//Sentfrom does the invertion of sourceDraft. 
+	sentFrom Message[] @relation("DraftLineage") 
+}
