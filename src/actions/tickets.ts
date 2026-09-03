@@ -26,3 +26,25 @@ export async function createTicket(formData: FormData) {
 		},
 	});
 }
+
+export async function sendReply(formData: FormData){
+	const session = await auth();
+	if (session?.user?.role !== "ADMIN") return; 
+
+	const ticketId = formData.get("ticketId") as string;
+	const content = formData.get("content") as string;
+
+	await prisma.message.create({
+		data:{
+			ticketId,
+			type: "ADMIN",
+			content,
+			authorId : session.user.id,
+		},
+	});
+
+	await prisma.ticket.update({
+		where: { id: ticketId },
+		data: { status: "ANSWERED"}, 
+	});
+}
