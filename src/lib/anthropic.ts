@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const client = new Anthropic();
 
-const ANALYZE_TOOL = {
+const ANALYZE_TOOL: Anthropic.Tool = {
   name: "analyze_ticket",
   description: "Classify a support ticket and draft a reply",
   input_schema: {
@@ -16,4 +16,34 @@ const ANALYZE_TOOL = {
     },
     required: ["category","priority","sentiment","draftReply"],
   },
-} as const;
+};
+
+
+
+export async function analyzeTicket(subject: string, content : string) {
+	const response = await client.messages.create({
+		model: "claude-opus-5",
+		max_tokens: 4000,
+		tools: [ANALYZE_TOOL],
+		tool_choice: { type: "tool", name: "analyze_ticket"},
+		messages: [
+			{ role: "user", content: `Subject: ${subject}\n\n${content}` },
+		],
+	});
+
+	const toolUse = response.content.find(
+		(block) => block.type === "tool_use"
+	);
+	if (!toolUse) {
+		throw new Error("Claude did not return a tool use block")
+	}
+
+	const result = toolUse.input as {
+		category: string;
+		priority: string;
+		sentiment: string;
+		draftReply: string;
+	};
+
+	return result;
+}
