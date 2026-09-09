@@ -1,5 +1,5 @@
 "use server";
-
+import { analyzeTicket } from "@/lib/anthropic";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
@@ -25,6 +25,34 @@ export async function createTicket(formData: FormData) {
 			authorId: session.user.id,
 		},
 	});
+
+	try {
+		const analysis = await analyzeTicket(subject, content);
+		
+		await prisma.ticket.update({
+			where: { id: ticket.id},
+			data :{
+				category: analysis.category,
+				priority: analysis.priority,
+				sentiment: analysis.sentiment,
+				aiAnalyzedAt: new Date(),
+			},
+		});
+		 await prisma.message.create({
+			data:{
+				ticketId: ticket.id,
+				type: "AI_DRAFT",
+				content: analysis.draftReply,
+				draftStatus: "PENDING"
+			}
+		 });
+	
+	} catch (error){
+		await prisma.ticket.update({
+			where: { id: ticket.id },
+			data: { aiAnalysisError: "AI analysis failed"},
+		});
+	}
 }
 
 export async function sendReply(formData: FormData){
@@ -47,4 +75,54 @@ export async function sendReply(formData: FormData){
 		where: { id: ticketId },
 		data: { status: "ANSWERED"}, 
 	});
+}
+
+export async function reanalyzeTicket(formData: FormData) {
+	const session = await auth();
+	if (session?.user?.role !== "ADMIN") return;
+
+	const ticketId = formData.get("ticketId") as string;
+
+	const ticket = await prisma.ticket.findUnique({
+		where: { id: ticketId },
+		include: { messages : true},
+	});
+	if (!ticket) return;
+
+	const OGMessage = ticket.messages.find((message) => message.type === "USER")
+	if (!OGMessage) return;
+
+	await prisma.message.updateMany({
+		where: { ticketId, type: "AI_DRAFT", draftStatus: "PENDING"},
+		data: { draftStatus: "DISCARDED" },
+	});
+
+	try {
+		const ReAnalyze = await analyzeTicket(ticket.subject, OGMessage.content);
+
+		await prisma.ticket.update({
+			where: { id: ticket.id },
+			data: {
+				category: ReAnalyze.category,
+				priority: ReAnalyze.priority,
+				sentiment: ReAnalyze.sentiment,
+				aiAnalyzedAt: new Date(),
+				aiAnalysisError: null,
+			},
+		});
+
+		await prisma.message.create({
+			data:{
+				ticketId: ticket.id,
+				type: "AI_DRAFT",
+				content: ReAnalyze.draftReply,
+				draftStatus: "PENDING"
+			}
+		});
+	} catch (error){
+		await prisma.ticket.update({
+			where: { id: ticket.id },
+			data: { aiAnalysisError: "Ai Analysis Failed"},
+		});
+	}
 }
