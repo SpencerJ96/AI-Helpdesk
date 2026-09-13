@@ -53,6 +53,7 @@ export default async function AdminTicketDetailPage({ params } : { params : Prom
 			</div>
 
 			 <form action={sendReply}>
+			<input type="hidden" name="draftId" value={draft?.id ?? ""}></input>
 			<input type="hidden" name="ticketId" value={ticket.id}></input>
 			<textarea name="content" placeholder="Write a reply"></textarea>
 			<button type="submit">Send Reply</button>

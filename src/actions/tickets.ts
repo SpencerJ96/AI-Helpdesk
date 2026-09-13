@@ -61,6 +61,26 @@ export async function sendReply(formData: FormData){
 
 	const ticketId = formData.get("ticketId") as string;
 	const content = formData.get("content") as string;
+	const draftId = formData.get("draftId") as string;
+
+	if (draftId) {
+		const draftContent = await prisma.message.findUnique({
+			where: { id: draftId }
+		})
+		if (draftContent) {
+
+		if (content === draftContent.content){
+			await prisma.message.update({
+				where: {id: draftId},
+				data: {draftStatus: "SENT_AS_IS"}
+			})
+		} else {
+			await prisma.message.update({
+				where: { id: draftId},
+				data: {draftStatus: "SENT_EDITED"}
+			})
+		}}
+	}
 
 	await prisma.message.create({
 		data:{
@@ -68,6 +88,7 @@ export async function sendReply(formData: FormData){
 			type: "ADMIN",
 			content,
 			authorId : session.user.id,
+			sourceDraftId : draftId || null 
 		},
 	});
 
