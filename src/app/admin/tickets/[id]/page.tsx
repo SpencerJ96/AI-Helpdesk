@@ -24,9 +24,15 @@ export default async function AdminTicketDetailPage({ params } : { params : Prom
 			<div>
 				{ticket.messages
 				.filter((message) => message.type !== "AI_DRAFT")
-				.map((message) => (
-					<p key={message.id}>{message.content}</p>
-				))}
+				.map((message) => {
+  				const linkedDraft = ticket.messages.find((m) => m.id === message.sourceDraftId);
+  				return (
+  					<p key={message.id}>
+  						{message.content}
+  						{linkedDraft && ` (${linkedDraft.draftStatus === "SENT_AS_IS" ? "sent as-is" : "edited"})`}
+  					</p>
+  				);
+				})}
 			</div>
 
 			<div>
