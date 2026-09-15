@@ -147,3 +147,21 @@ export async function reanalyzeTicket(formData: FormData) {
 		});
 	}
 }
+
+export async function editAIAnalysis(formData: FormData){
+	const session = await auth();
+	if (session?.user?.role !== "ADMIN") return;
+
+	const newPrio = formData.get("priority") as string;
+	const newCate = formData.get("category") as string;
+	const ticketId = formData.get("ticketId") as string;
+
+	await prisma.ticket.update({
+		where: { id: ticketId},
+		data : { category: newCate,
+				 priority : newPrio,
+				 categoryOverridden : true,
+				 priorityOverridden : true,
+		}
+	})
+}
