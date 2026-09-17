@@ -14,12 +14,13 @@ export default async function AdminDashboardPage( { searchParams } : { searchPar
 	return (
 		<div>
 			<h1>All Tickets</h1>
+			{tickets.length === 0 ? <p>No Tickets Found</p> :
 			<ul>
 				{tickets.map((ticket) => (
 					<li key={ticket.id}> {ticket.subject} - {ticket.priority ?? "unclassified"}</li>
 				))}
 			</ul>
-
+			}
 			<form method="GET">
  				<select name="status" value={status}>
    				<option value="OPEN">Open</option>

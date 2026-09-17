@@ -2,6 +2,10 @@
 import { analyzeTicket } from "@/lib/anthropic";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { createTicketSchema } from "@/types/ticket";
+import { SendReplySchema } from "@/types/ticket";
+import { reanalyzeTicketSchema } from "@/types/ticket";
+import { editAIAnalysisSchema } from "@/types/ticket";
 
 export async function createTicket(formData: FormData) {
 	const session = await auth();
@@ -9,6 +13,8 @@ export async function createTicket(formData: FormData) {
 
 	const subject = formData.get("subject") as string;
 	const content = formData.get("content") as string;
+
+	createTicketSchema.parse({ subject, content })
 
 	const ticket = await prisma.ticket.create({
 		data:{
@@ -63,6 +69,9 @@ export async function sendReply(formData: FormData){
 	const content = formData.get("content") as string;
 	const draftId = formData.get("draftId") as string;
 
+	SendReplySchema.parse({ ticketId, content, draftId })
+
+
 	if (draftId) {
 		const draftContent = await prisma.message.findUnique({
 			where: { id: draftId }
@@ -103,6 +112,9 @@ export async function reanalyzeTicket(formData: FormData) {
 	if (session?.user?.role !== "ADMIN") return;
 
 	const ticketId = formData.get("ticketId") as string;
+
+	reanalyzeTicketSchema.parse({ ticketId })
+
 
 	const ticket = await prisma.ticket.findUnique({
 		where: { id: ticketId },
@@ -155,6 +167,9 @@ export async function editAIAnalysis(formData: FormData){
 	const newPrio = formData.get("priority") as string;
 	const newCate = formData.get("category") as string;
 	const ticketId = formData.get("ticketId") as string;
+
+	editAIAnalysisSchema.parse({ category: newCate, priority: newPrio, ticketId })
+
 
 	await prisma.ticket.update({
 		where: { id: ticketId},
