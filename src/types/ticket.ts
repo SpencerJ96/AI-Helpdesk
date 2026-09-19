@@ -20,3 +20,8 @@ export const editAIAnalysisSchema = z.object({
 	priority: z.string().min(1),
 	ticketId: z.string().min(1),
 })
+
+export const sendUserReplySchema = z.object({
+	content : z.string().min(1),
+	ticketId: z.string().min(1),
+})

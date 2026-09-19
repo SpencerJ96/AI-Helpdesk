@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { replyAsUser } from "@/actions/tickets";
 
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,8 +17,10 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div>
+
       <h1>{ticket.subject}</h1>
       <p>Status: {ticket.status}</p>
+
       <div>
         {ticket.messages
           .filter((message) => message.type !== "AI_DRAFT")
@@ -25,6 +28,15 @@ export default async function TicketDetailPage({ params }: { params: Promise<{ i
             <p key={message.id}>{message.content}</p>
           ))}
       </div>
+
+		<div>
+		  	<form action={replyAsUser}>
+				<input type="hidden" value={ticket.id} name="ticketId"></input>
+				<textarea name="content" placeholder="Enter your Reply Here"></textarea>
+				<button type="submit">Reply</button>
+			</form>
+		</div>  
+
     </div>
   );
 }

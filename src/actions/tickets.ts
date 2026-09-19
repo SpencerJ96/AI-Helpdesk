@@ -6,6 +6,7 @@ import { createTicketSchema } from "@/types/ticket";
 import { SendReplySchema } from "@/types/ticket";
 import { reanalyzeTicketSchema } from "@/types/ticket";
 import { editAIAnalysisSchema } from "@/types/ticket";
+import { sendUserReplySchema } from "@/types/ticket";
 
 export async function createTicket(formData: FormData) {
 	const session = await auth();
@@ -59,6 +60,37 @@ export async function createTicket(formData: FormData) {
 			data: { aiAnalysisError: "AI analysis failed"},
 		});
 	}
+}
+
+export async function replyAsUser ( formData : FormData ) {
+	const session = await auth();
+
+
+	const ticketId = formData.get("ticketId") as string;
+	const ticket = await prisma.ticket.findUnique({ where: {id: ticketId } })
+	if (!ticket) return;
+	
+
+	if (ticket.ownerId !== session?.user?.id) return;
+
+	const content = formData.get("content") as string;
+
+	sendUserReplySchema.parse({ticketId, content })
+
+
+	await prisma.message.create({
+		data:{
+			ticketId,
+			type: "USER",
+			content,
+			authorId : session.user.id
+		}
+		})
+
+	await prisma.ticket.update ({
+		where : { id : ticketId},
+		data : { status : "OPEN" }
+	})
 }
 
 export async function sendReply(formData: FormData){
