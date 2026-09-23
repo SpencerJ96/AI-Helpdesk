@@ -7,6 +7,7 @@ import { SendReplySchema } from "@/types/ticket";
 import { reanalyzeTicketSchema } from "@/types/ticket";
 import { editAIAnalysisSchema } from "@/types/ticket";
 import { sendUserReplySchema } from "@/types/ticket";
+import { closeTicketSchema } from "@/types/ticket";
 
 export async function createTicket(formData: FormData) {
 	const session = await auth();
@@ -91,6 +92,20 @@ export async function replyAsUser ( formData : FormData ) {
 		where : { id : ticketId},
 		data : { status : "OPEN" }
 	})
+}
+
+export async function closeTicket ( formData : FormData ){
+	const session = await auth();
+	if (session?.user?.role !== "ADMIN") return;
+
+	const ticketId = formData.get("ticketId") as string;
+	
+	closeTicketSchema.parse({ ticketId})
+
+	await prisma.ticket.update({
+		where: { id: ticketId },
+		data: { status: "CLOSED"}, 
+	});
 }
 
 export async function sendReply(formData: FormData){

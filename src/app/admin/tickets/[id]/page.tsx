@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { editAIAnalysis, reanalyzeTicket, sendReply } from "@/actions/tickets";
+import { editAIAnalysis, reanalyzeTicket, sendReply, closeTicket } from "@/actions/tickets";
 
 export default async function AdminTicketDetailPage({ params } : { params : Promise <{id : string }> }){
 	const { id } = await params;
@@ -87,6 +87,11 @@ export default async function AdminTicketDetailPage({ params } : { params : Prom
 					<option value="CRITICAL">Critical</option>
 				</select>
 				<button type="submit">Save Edits</button>
+			 </form>
+
+			 <form action={closeTicket}>
+			<input type="hidden" name="ticketId" value={ticket.id}></input>
+				<button type="submit">Close Ticket?</button>
 			 </form>
 		</div>
 	)
